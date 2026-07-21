@@ -105,15 +105,21 @@ class _VolumeEstimatorState extends State<VolumeEstimator> {
 
     double sMat = (siliconeVolumePerMold * moldsNeeded / AppConfig.siliconeMm3PerKg) * AppConfig.siliconeCostKg;
     double sLab = (moldsNeeded * AppConfig.siliconeTime) * AppConfig.siliconeLaborRate;
+    double sTime = (moldsNeeded * AppConfig.siliconeTime).toDouble();
+
     double uMat = (productVolume * qty / AppConfig.urethaneMm3PerKg) * AppConfig.urethaneCostKg;
     double uLab = (qty * AppConfig.urethaneTime) * AppConfig.urethaneLaborRate;
+    double uTime = (qty * AppConfig.urethaneTime).toDouble();
+
+    double grandTotalTime = sTime + uTime;
 
     setState(() {
       _results = {
         "len": l, "wid": w, "hgt": h, "qty": qty.toDouble(), "molds": moldsNeeded.toDouble(),
-        "sMat": sMat, "sLab": sLab, "sTot": sMat + sLab,
-        "uMat": uMat, "uLab": uLab, "uTot": uMat + uLab,
+        "sMat": sMat, "sLab": sLab, "sTot": sMat + sLab, "sTime": sTime,
+        "uMat": uMat, "uLab": uLab, "uTot": uMat + uLab, "uTime": uTime,
         "grandTotal": sMat + sLab + uMat + uLab,
+        "grandTotalTime": grandTotalTime,
       };
     });
   }
@@ -169,6 +175,29 @@ class _VolumeEstimatorState extends State<VolumeEstimator> {
         ]),
       );
 
+  Widget _resultTimeRow(String title, double totalMinutes) {
+    int totalMins = totalMinutes.round();
+    int days = totalMins ~/ (24 * 60);
+    int remainingMinsAfterDays = totalMins % (24 * 60);
+    int hours = remainingMinsAfterDays ~/ 60;
+    int minutes = remainingMinsAfterDays % 60;
+
+    List<String> parts = [];
+    if (days > 0) parts.add("$days d");
+    if (hours > 0 || days > 0) parts.add("$hours hr");
+    parts.add("$minutes min");
+
+    String formattedTime = parts.join(" ");
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(formattedTime, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
@@ -180,7 +209,12 @@ class _VolumeEstimatorState extends State<VolumeEstimator> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 40,
-        actions: [IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 20), onPressed: _showAbout)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+            onPressed: _showAbout,
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -250,10 +284,14 @@ class _VolumeEstimatorState extends State<VolumeEstimator> {
                                       const Text("--- SILICONE ---", style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                                       _resultRow("Material", _results!['sMat']!),
                                       _resultRow("Labor", _results!['sLab']!),
+                                      _resultTimeRow("Production Time", _results!['sTime']!),
                                       const SizedBox(height: 4),
                                       const Text("--- URETHANE ---", style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                                       _resultRow("Material", _results!['uMat']!),
                                       _resultRow("Labor", _results!['uLab']!),
+                                      _resultTimeRow("Production Time", _results!['uTime']!),
+                                      const Divider(color: Colors.white24, height: 10),
+                                      _resultTimeRow("Total Client Time", _results!['grandTotalTime']!),
                                     ])),
                               ]),
                         )),
